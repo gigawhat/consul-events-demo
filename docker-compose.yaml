@@ -1,0 +1,29 @@
+version: '3'
+
+services:
+  server:
+    image: consul:1.6
+    command: "agent -server -bootstrap-expect 1 -ui -client 0.0.0.0"
+    environment:
+      - 'CONSUL_LOCAL_CONFIG={"disable_update_check": true}'
+    hostname: server
+    networks:
+      - consul
+    ports:
+      - "8400:8400"
+      - "8500:8500"
+      - "8600:8600"
+      - "8600:8600/udp"
+  sip-comm:
+    build:
+      context: ./sip-comm
+    command: "agent -retry-join server -client 0.0.0.0"
+    environment:
+      - 'CONSUL_LOCAL_CONFIG={"disable_update_check": true, "log_level": "debug", "watches": [{ "type": "event", "name": "drainInstance", "args": ["/app/drain.py"] }], "service": {"name": "sip-comm", "port": 5060}  }'
+    networks:
+      - consul
+    volumes:
+      - "./sip-comm:/app"
+
+networks:
+  consul:
